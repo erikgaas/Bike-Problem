@@ -50,7 +50,7 @@ rf_registered<-train(registered_formula,
 ##Generate results
 setwd("D:/Dropbox/Kaggle Bike")
 result<- round(predict(rf_casual) + predict(rf_registered),0)
-sampleSubmission <- read.csv("D:/Dropbox/Kaggle Bike/filtered_train.txt")
+sampleSubmission <- read.csv("D:/Dropbox/Kaggle Bike/sampleSubmission.csv")
 sampleSubmission$count <- result
 write.csv(sampleSubmission,file='rftest.csv',row.names=F)
 
