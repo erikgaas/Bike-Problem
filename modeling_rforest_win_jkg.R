@@ -14,6 +14,16 @@ train$holiday <- factor(train$holiday)
 train$workingday <- factor(train$workingday)
 train$weather <- factor(train$weather)
 
+
+#hold out .25 to estimate kaggle score
+train_idx <-createDataPartition(train$casual,p=.75,list=F)
+train_train <-train[train_idx,]
+train_test <- train[-train_idx,]
+train_test_casual <- train_test$casual
+train_test_registered <- train_test$registered
+train_test <- train_test[,-c(13,14)]
+
+
 library(gbm)
 library(caret)
 library(doParallel)
@@ -22,21 +32,27 @@ library(randomForest)
 casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),collapse="+")))
 registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
 
-
-
-cl <-makeCluster(2)##now we're in windows
+cl <-makeCluster(4)
 registerDoParallel(cl)
 
 ##basic random forest
-simple_forest_casual <- randomForest(casual_formula,data=train)
-simple_forest_regist <- randomForest(registered_formula,data=train)
+casual_forest_bias <- randomForest(casual_formula,data=train_train,
+                                     corr.bias=T)
+regist_forest_bias<- randomForest(registered_formula,data=train_train,
+                                  corr.bias=T)
+##predict kaggle score
+predicted_casual <- predict(casual_forest_bias,train_test)
+predicted_registered <- predict(regist_forest_bias,train_test)
+predicted_total <- predicted_casual + predicted_registered
+actual_total <- train_test_casual + train_test_registered
+rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
 
 
 
-##Generate results
-setwd("~/Desktop/Bike-Problem")
-result<- round(predict(simple_forest_casual,test) + predict(simple_forest_regist,test),0)
-sampleSubmission <- read.csv("~/Desktop/Bike Problem/sampleSubmission.csv")
-sampleSubmission$count <- result
-write.csv(sampleSubmission,file='rftest',row.names=F)
+# ##Generate results
+# setwd("~/Desktop/Bike-Problem")
+# result_tree<- round(predict(simple_forest_casual,test) + predict(simple_forest_regist,test),0)
+# sampleSubmission <- read.csv("~/Desktop/Bike-Problem/sampleSubmission.csv")
+# sampleSubmission$count <- result
+# write.csv(sampleSubmission,file='rftest.csv',row.names=F)
 
