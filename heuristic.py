@@ -51,7 +51,8 @@ def predict_casual(test_day):
 	else:
 		avg_slope = sum(slopes) / len(slopes)
 
-	result = ((day - measure_numbers[-1])/7 * avg_slope) + measure_casuals[-1]
+	#result = ((day - measure_numbers[-1])/7 * avg_slope) + measure_casuals[-1]
+	result = sum(measure_casuals) / len(measure_casuals)
 	result = int(round(result, 0))
 	if result > 0 :
 		return result
@@ -81,8 +82,10 @@ def predict_registered(test_day):
 	else:
 		avg_slope = sum(slopes) / len(slopes)
 
-	result = ((day - measure_numbers[-1])/7 * avg_slope) + measure_casuals[-1]
+	#result = ((day - measure_numbers[-1])/7 * avg_slope) + measure_casuals[-1]
+	result = sum(measure_casuals) / len(measure_casuals)
 	result = int(round(result, 0))
+
 	if result > 0 :
 		return result
 	else:
