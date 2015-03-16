@@ -6,6 +6,8 @@ for line in file_in:
 	line=line.rstrip()
 	row= line.split('\t')
 	row[0]=row[0][1:-1]
+	row[1]=row[1][0:row[1].find(':')]
+	print(row[1])
 	big_row = list(row[0].split(','))
 	weekday=big_row[0]
 	if 'Saturday' in weekday or 'Sunday' in weekday:

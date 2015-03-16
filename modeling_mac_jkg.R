@@ -1,22 +1,18 @@
-test <- read.delim("~/Desktop/Kaggle Bike/filtered_test.txt")
-#we want date year season holiday workinday weather all to be factors
-test$date <- factor(test$date)
+test <- read.delim("~/Desktop/Bike-Problem/filtered_test.txt")
+test$hour <- factor(test$hour)
 test$year <- factor(test$year)
-test$is_weekend <- factor(test$is_weekend)
 test$season <- factor(test$season)
 test$holiday <- factor(test$holiday)
 test$workingday <- factor(test$workingday)
 test$weather <- factor(test$weather)
 
-train <- read.delim("~/Desktop/Kaggle Bike/filtered_train.txt")
-train$date <- factor(train$date)
-train$is_weekend <- factor(train$is_weekend)
+train <- read.delim("~/Desktop/Bike-Problem/filtered_train.txt")
+train$hour <- factor(train$hour)
 train$year <- factor(train$year)
 train$season <- factor(train$season)
 train$holiday <- factor(train$holiday)
 train$workingday <- factor(train$workingday)
 train$weather <- factor(train$weather)
-
 #weekends are really important but i'm not sold on dates mattering
 #visualize this using
 #aggregate(train$casual,list(train$date),mean) -- take the mean of casual by group date
@@ -31,20 +27,26 @@ train$weather <- factor(train$weather)
 ##we're going to model casual and registered seperataly
 ##this is pretty clear from the data that casual people bike on weekends and registered are mostly 
 ##commuters. There would be interference if we kept them together.
-library(gbm)
+
 
 ##all predictors including those engineered this syntax just builds us a nice formula without typing all 
 ##13 columns out by hand.
 ##we got rid of the less important one
-casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(3,14,15)]),collapse="+")))
-registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(3,14,15)]),collapse="+")))
+casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(14,15)]),collapse="+")))
+registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(14,15)]),collapse="+")))
 
 
 ##well first try didn't work so well. so let's train some parameters
 library(caret)
+##massively shrunk parameters let's see how this runs
 
-gbmGrid <-  expand.grid(interaction.depth = c(8, 12, 16,20),
-                        n.trees = c(1000,2000,3000,5000),
+library(doParallel)
+library(gbm)
+cl <-makeCluster(4)##now we're in windows
+registerDoParallel(cl)
+
+gbmGrid <-  expand.grid(interaction.depth = c(20),
+                        n.trees = c(2500,5000),
                         shrinkage = c(0.1,.001,.0001))
 
 control <-trainControl(method="repeatedcv",number=10,repeats=10)
@@ -62,38 +64,10 @@ gbm_registered_best<-train(registered_formula,data=train,
 
 
 ##Generate results
-setwd("~/Desktop/Kaggle Bike")
-result<- round(predict(gbm_registered_best,test,n.trees=???) + predict(gbm_casual_best,test,n.trees=???wa),0)
-sampleSubmission <- read.csv("~/Downloads/sampleSubmission.csv")
+setwd("~/Desktop/Bike Problem")
+result<- round(predict(gbm_casual_best,test) + predict(gbm_registered_best,test),0)
+sampleSubmission <- read.csv("~/Desktop/Bike Problem/sampleSubmission.csv")
 sampleSubmission$count <- result
-write.csv(sampleSubmission,file='finaltest.csv',row.names=F)
+write.csv(sampleSubmission,file='rftest',row.names=F)
 
 
-
-
-# # Remniants from old code
-# ##tuned using best info
-# gbm_casual <- gbm(casual_formula,
-#                   data=train,
-#                   distribution="gaussian",
-#                   n.trees=150,
-#                   bag.fraction = 0.75,
-#                   shrinkage=.1,
-#                   cv.folds = 10,
-#                   interaction.depth = 3)
-# gbm_registered <- gbm(registered_formula,
-#                       data=train,
-#                       distribution="gaussian",
-#                       n.trees=150,
-#                       bag.fraction = 0.75,
-#                       shrinkage=.1,
-#                       cv.folds = 10,
-#                       interaction.depth = 3)
-# 
-# ##tuning interaction depth and n.trees so far. havent' touched bag.fraction and cv.folds
-# ##holy this takes like 15 minutes
-# ##want plot to flatten but avoid overfitting this plot shows how well we're doing with error
-# gbm_casual_perf <- gbm.perf(gbm_casual,method="cv")
-# gbm_registered_perf <- gbm.perf(gbm_registered,method="cv")
-# ##looks like 3000 is a lot. lets make predictions on our test data and submit
-# 
