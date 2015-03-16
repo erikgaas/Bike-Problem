@@ -34,12 +34,12 @@ train$weather <- factor(train$weather)
 ##we got rid of the less important one
 
 
-train_idx <-createDataPartition(train$casual,p=.75,list=F)
-train_train <-train[train_idx,]
-train_test <- train[-train_idx,]
-train_test_casual <- train_test$casual
-train_test_registered <- train_test$registered
-train_test <- train_test[,-c(13,14)]
+# train_idx <-createDataPartition(train$casual,p=.75,list=F)
+# train_train <-train[train_idx,]
+# train_test <- train[-train_idx,]
+# train_test_casual <- train_test$casual
+# train_test_registered <- train_test$registered
+# train_test <- train_test[,-c(13,14)]
 
 casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),collapse="+")))
 registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
@@ -50,26 +50,43 @@ library(caret)
 ##massively shrunk parameters let's see how this runs
 library(gbm)
 
-gbm_casual<- gbm(casual_formula,n.trees=3000,data=train_train,
+
+##lets try to average em
+gbm_casual<- gbm(casual_formula,n.trees=3000,data=train,
                  distribution="gaussian",interaction.depth=10,
                  train.fraction=.8,cv.folds=10)
-gbm_registered <- gbm(registered_formula,n.trees=5000,data=train_train,
+gbm_registered <- gbm(registered_formula,n.trees=5000,data=train,
                       distribution="gaussian",interaction.depth=10,
                       train.fraction=.8,cv.folds=10)
 
+##basic random forest
+casual_forest_bias <- randomForest(casual_formula,data=train,
+                                   corr.bias=T)
+regist_forest_bias<- randomForest(registered_formula,data=train,
+                                  corr.bias=T)
 
-predicted_casual <- predict(gbm_casual,train_test)
-predicted_registered <- predict(gbm_registered,train_test)
-predicted_total <- predicted_casual + predicted_registered
-actual_total <- train_test_casual + train_test_registered
-rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
 
-# ##Generate results
-# setwd("~/Desktop/Bike-Problem")
-# result<- round(predict(gbm_casual,test) + predict(gbm_registered,test),0)
-# sampleSubmission <- read.csv("~/Desktop/Bike Problem/sampleSubmission.csv")
-# sampleSubmission$count <- result
-# write.csv(sampleSubmission,file='rftest',row.names=F)
+##predict kaggle score
+predicted_casual_f <- predict(casual_forest_bias,test)
+predicted_registered_f <- predict(regist_forest_bias,test)
+predicted_total_f <- predicted_casual_f + predicted_registered_f
+
+
+predicted_casual_g <- predict(gbm_casual,test)
+predicted_registered_g <- predict(gbm_registered,test)
+predicted_total_g <- predicted_casual_g + predicted_registered_g
+
+predicted_total <- round((predicted_total_g+predicted_total_f)/2,0)
+# 
+# actual_total <- train_test_casual + train_test_registered
+# 
+# rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
+
+##Generate results
+setwd("~/Desktop/Bike-Problem")
+sampleSubmission <- read.csv("~/Desktop/Bike-Problem/sampleSubmission.csv")
+sampleSubmission$count <- predicted_total
+write.csv(sampleSubmission,file='sumtest.csv',row.names=F)
 
 
 
