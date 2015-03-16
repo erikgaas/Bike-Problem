@@ -32,8 +32,8 @@ train$weather <- factor(train$weather)
 ##all predictors including those engineered this syntax just builds us a nice formula without typing all 
 ##13 columns out by hand.
 ##we got rid of the less important one
-casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(14,15)]),collapse="+")))
-registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(14,15)]),collapse="+")))
+casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),collapse="+")))
+registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
 
 
 ##well first try didn't work so well. so let's train some parameters
@@ -47,7 +47,7 @@ registerDoParallel(cl)
 
 gbmGrid <-  expand.grid(interaction.depth = c(20),
                         n.trees = c(2500,5000),
-                        shrinkage = c(0.1,.001,.0001))
+                        shrinkage = c(0.1,.001))
 
 control <-trainControl(method="repeatedcv",number=10,repeats=10)
 gbm_casual_best<- train(casual_formula, data =train,
@@ -64,7 +64,7 @@ gbm_registered_best<-train(registered_formula,data=train,
 
 
 ##Generate results
-setwd("~/Desktop/Bike Problem")
+setwd("~/Desktop/Bike-Problem")
 result<- round(predict(gbm_casual_best,test) + predict(gbm_registered_best,test),0)
 sampleSubmission <- read.csv("~/Desktop/Bike Problem/sampleSubmission.csv")
 sampleSubmission$count <- result

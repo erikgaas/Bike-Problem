@@ -19,8 +19,8 @@ library(caret)
 library(doParallel)
 library(randomForest)
 
-casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(14,15)]),collapse="+")))
-registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(14,15)]),collapse="+")))
+casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),collapse="+")))
+registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
 
 
 
@@ -34,7 +34,7 @@ simple_forest_regist <- randomForest(registered_formula,data=train)
 
 
 ##Generate results
-setwd("~/Desktop/Bike Problem")
+setwd("~/Desktop/Bike-Problem")
 result<- round(predict(simple_forest_casual,test) + predict(simple_forest_regist,test),0)
 sampleSubmission <- read.csv("~/Desktop/Bike Problem/sampleSubmission.csv")
 sampleSubmission$count <- result
