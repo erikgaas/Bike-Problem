@@ -15,19 +15,26 @@ train$workingday <- factor(train$workingday)
 train$weather <- factor(train$weather)
 
 
+library(gbm)
+library(caret)
+library(doParallel)
+library(randomForest)
+
 #hold out .25 to estimate kaggle score
 train_idx <-createDataPartition(train$casual,p=.75,list=F)
 train_train <-train[train_idx,]
+train_train$casual <-log(train_train$casual+1)
+
+train_train$registered <-log(train_train$registered+1)
+#trying out logs
+
 train_test <- train[-train_idx,]
 train_test_casual <- train_test$casual
 train_test_registered <- train_test$registered
 train_test <- train_test[,-c(13,14)]
 
 
-library(gbm)
-library(caret)
-library(doParallel)
-library(randomForest)
+
 
 casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),collapse="+")))
 registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
@@ -36,17 +43,17 @@ cl <-makeCluster(4)
 registerDoParallel(cl)
 
 ##basic random forest
-casual_forest_bias <- randomForest(casual_formula,data=train_train,
+casual_forest_bias <- randomForest(casual_formula,data=train_train,ntree=1000,mtry=5,importance=T,
                                      corr.bias=T)
-regist_forest_bias<- randomForest(registered_formula,data=train_train,
+regist_forest_bias<- randomForest(registered_formula,data=train_train,ntree=1000,mtry=5,importance=T,
                                   corr.bias=T)
 ##predict kaggle score
-predicted_casual <- predict(casual_forest_bias,train_test)
-predicted_registered <- predict(regist_forest_bias,train_test)
+predicted_casual <- exp(predict(casual_forest_bias,train_test))
+predicted_registered <- exp(predict(regist_forest_bias,train_test))
 predicted_total <- predicted_casual + predicted_registered
 actual_total <- train_test_casual + train_test_registered
 rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
-
+print(rmsle)
 
 
 # ##Generate results

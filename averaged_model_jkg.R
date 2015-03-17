@@ -13,29 +13,24 @@ train$season <- factor(train$season)
 train$holiday <- factor(train$holiday)
 train$workingday <- factor(train$workingday)
 train$weather <- factor(train$weather)
-#weekends are really important but i'm not sold on dates mattering
-#visualize this using
-#aggregate(train$casual,list(train$date),mean) -- take the mean of casual by group date
-#play around graphing these gives a really good summary of data
 
 
-##lets use gradient boosted trees trying to predict casual and registered as two different models
-##maybe make a model for each day of the week??
+library(gbm)
+library(caret)
+library(doParallel)
+library(randomForest)
 
-##chose decision tree methods because I believe it is a non linear regression.
+train$casual <-log(train$casual+1)
+train$registered <-log(train$registered+1)
 
-##we're going to model casual and registered seperataly
-##this is pretty clear from the data that casual people bike on weekends and registered are mostly 
-##commuters. There would be interference if we kept them together.
-
-
-##all predictors including those engineered this syntax just builds us a nice formula without typing all 
-##13 columns out by hand.
-##we got rid of the less important one
-
-
+# #hold out .25 to estimate kaggle score
 # train_idx <-createDataPartition(train$casual,p=.75,list=F)
 # train_train <-train[train_idx,]
+# train_train$casual <-log(train_train$casual+1)
+# 
+# train_train$registered <-log(train_train$registered+1)
+# #trying out logs
+# 
 # train_test <- train[-train_idx,]
 # train_test_casual <- train_test$casual
 # train_test_registered <- train_test$registered
@@ -60,33 +55,35 @@ gbm_registered <- gbm(registered_formula,n.trees=5000,data=train,
                       train.fraction=.8,cv.folds=10)
 
 ##basic random forest
-casual_forest_bias <- randomForest(casual_formula,data=train,
+casual_forest_bias <- randomForest(casual_formula,data=train,ntree=1500,mtry=5,importance=T,
                                    corr.bias=T)
-regist_forest_bias<- randomForest(registered_formula,data=train,
+regist_forest_bias<- randomForest(registered_formula,data=train,ntree=1500,mtry=5,importance=T,
                                   corr.bias=T)
 
-
 ##predict kaggle score
-predicted_casual_f <- predict(casual_forest_bias,test)
-predicted_registered_f <- predict(regist_forest_bias,test)
+predicted_casual_f <- exp(predict(casual_forest_bias,test))
+predicted_registered_f <- exp(predict(regist_forest_bias,test))
 predicted_total_f <- predicted_casual_f + predicted_registered_f
 
 
-predicted_casual_g <- predict(gbm_casual,test)
-predicted_registered_g <- predict(gbm_registered,test)
+predicted_casual_g <- exp(predict(gbm_casual,test))
+predicted_registered_g <- exp(predict(gbm_registered,test))
 predicted_total_g <- predicted_casual_g + predicted_registered_g
 
-predicted_total <- round((predicted_total_g+predicted_total_f)/2,0)
-# 
+predicted_total <- round((predicted_total_g+predicted_total_f)*.5,0)
+
+
+
+
 # actual_total <- train_test_casual + train_test_registered
 # 
-# rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
+#rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
 
-##Generate results
+#Generate results
 setwd("~/Desktop/Bike-Problem")
 sampleSubmission <- read.csv("~/Desktop/Bike-Problem/sampleSubmission.csv")
 sampleSubmission$count <- predicted_total
-write.csv(sampleSubmission,file='sumtest.csv',row.names=F)
+write.csv(sampleSubmission,file='log_test16th',row.names=F)
 
 
 
