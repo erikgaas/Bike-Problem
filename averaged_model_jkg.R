@@ -24,7 +24,7 @@ train$casual <-log(train$casual+1)
 train$registered <-log(train$registered+1)
 
 # #hold out .25 to estimate kaggle score
-# train_idx <-createDataPartition(train$casual,p=.75,list=F)
+# train_idx <-createDataPartition(train$casual,p=.70,list=F)
 # train_train <-train[train_idx,]
 # train_train$casual <-log(train_train$casual+1)
 # 
@@ -40,24 +40,18 @@ casual_formula <-as.formula(paste0("casual~",paste(colnames(train[-c(13,14)]),co
 registered_formula <- as.formula(paste0("registered~",paste(colnames(train[-c(13,14)]),collapse="+")))
 
 
-##well first try didn't work so well. so let's train some parameters
-library(caret)
-##massively shrunk parameters let's see how this runs
-library(gbm)
-
-
 ##lets try to average em
 gbm_casual<- gbm(casual_formula,n.trees=3000,data=train,
-                 distribution="gaussian",interaction.depth=10,
+                 distribution="gaussian",interaction.depth=12,
                  train.fraction=.8,cv.folds=10)
 gbm_registered <- gbm(registered_formula,n.trees=5000,data=train,
-                      distribution="gaussian",interaction.depth=10,
+                      distribution="gaussian",interaction.depth=12,
                       train.fraction=.8,cv.folds=10)
 
 ##basic random forest
-casual_forest_bias <- randomForest(casual_formula,data=train,ntree=1500,mtry=5,importance=T,
+casual_forest_bias <- randomForest(casual_formula,data=train,ntree=2000,mtry=7,importance=T,
                                    corr.bias=T)
-regist_forest_bias<- randomForest(registered_formula,data=train,ntree=1500,mtry=5,importance=T,
+regist_forest_bias<- randomForest(registered_formula,data=train,ntree=2000,mtry=7,importance=T,
                                   corr.bias=T)
 
 ##predict kaggle score
@@ -75,7 +69,7 @@ predicted_total <- round((predicted_total_g+predicted_total_f)*.5,0)
 
 
 
-# actual_total <- train_test_casual + train_test_registered
+#actual_total <- train_test_casual + train_test_registered
 # 
 #rmsle <- ((1/length(train_test_registered))*sum((log(predicted_total+1)-log(actual_total+1))**2))**.5
 
@@ -83,7 +77,7 @@ predicted_total <- round((predicted_total_g+predicted_total_f)*.5,0)
 setwd("~/Desktop/Bike-Problem")
 sampleSubmission <- read.csv("~/Desktop/Bike-Problem/sampleSubmission.csv")
 sampleSubmission$count <- predicted_total
-write.csv(sampleSubmission,file='log_test16th',row.names=F)
+write.csv(sampleSubmission,file='final_16th',row.names=F)
 
 
 
