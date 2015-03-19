@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 #Pick ML algorithm
-from sklearn.ensemble import RandomForestClassifier
+from sklearn import svm
 
 train = pd.read_csv("filtered_train.txt", sep="\t")
 train = train[train['year'] == 11]
@@ -11,7 +11,7 @@ months = train['month'].unique()
 #######
 #Here we need the test data
 test = pd.read_csv("filtered_test.txt", sep="\t")
-test = test[test['year'] == 12]
+test = test[test['year'] == 11]
 gtest_by_months = []
 for i in months:
 	temp = test[test['month'] == i]
@@ -32,8 +32,10 @@ for count_type in ['registered', 'casual']:
 	curr_count = []
 	#For every month for both train and test
 	for month in range(len(g_by_months)):
+		print(months[month])
 		#Look at every time group
 		for t in range(0,24):
+			print(t)
 			#grab that t_group
 			temp = g_by_months[month].get_group(t)
 			#get rid of the weekday, month, year, hour information
@@ -56,7 +58,7 @@ for count_type in ['registered', 'casual']:
 
 			#We know have train and labels for data at particular time and month
 			#Now implement ML on this data.
-			clf = RandomForestClassifier(n_estimators=10)
+			clf = svm.SVR()
 			train_array = np.around(train_array, decimals=3)
 			labels_array = np.around(labels_array, decimals=1)
 			where_are_NaNs = np.isnan(labels_array)
@@ -82,7 +84,8 @@ for count_type in ['registered', 'casual']:
 				subtract_labels = np.empty([1,1])
 				#for every row in train_array
 				for _, t_row in temp.iterrows():
-					new_row = t_row.as_matrix()[0:-1] - row.as_matrix()
+					#TRYING NEW THING SEEING IF IT WORKS
+					new_row = row.as_matrix() - t_row.as_matrix()[0:-1]# - row.as_matrix()
 					subtract_matrix = np.vstack([subtract_matrix, new_row])
 					subtract_labels = np.append(subtract_labels, t_row.as_matrix()[-1])
 
@@ -114,7 +117,7 @@ total_count = []
 for i in range(len(cas_reg[0])):
 	total_count.append(cas_reg[0][i] + cas_reg[1][i])
 
-finally_done = open("weird_idea2012.txt", "w")
+finally_done = open("weird_idea2011.txt", "w")
 finally_done.write("count"+"\n")
 for i in total_count:
 	finally_done.write(str(i) + "\n")
